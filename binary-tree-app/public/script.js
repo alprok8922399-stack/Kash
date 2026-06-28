@@ -1,37 +1,62 @@
-// 1. Пытаемся получить данные
+// 1. Инициализация
+let currentData = null;
+
 fetch('./data.json')
-    .then(response => {
-        if (!response.ok) throw new Error('Файл data.json не найден!');
-        return response.json();
-    })
+    .then(r => r.json())
     .then(data => {
-        console.log("Данные успешно загружены");
-        renderTree(data);
+        currentData = data;
+        renderTree(currentData);
+        // Запускаем процесс заполнения СРАЗУ после загрузки
+        startAutoFill(); 
     })
     .catch(err => {
-        document.getElementById('tree').innerHTML = "ОШИБКА: " + err.message;
+        document.getElementById('tree').innerHTML = "ОШИБКА: " + err;
     });
 
-// 2. Функция отрисовки
+// 2. "Курсор" (правило заполнения)
+function addCursor(node, login) {
+    let queue = [node];
+    while (queue.length > 0) {
+        let current = queue.shift();
+        if (!current.left) {
+            current.left = { login: login, left: null, right: null };
+            return true;
+        }
+        queue.push(current.left);
+        if (!current.right) {
+            current.right = { login: login, left: null, right: null };
+            return true;
+        }
+        queue.push(current.right);
+    }
+    return false;
+}
+
+// 3. Авто-заполнение каждые 2 секунды
+function startAutoFill() {
+    let counter = 1;
+    setInterval(() => {
+        if (addCursor(currentData, `User_${counter}`)) {
+            renderTree(currentData);
+            counter++;
+        }
+    }, 2000);
+}
+
+// 4. Отрисовка
 function renderTree(data) {
     const treeDiv = document.getElementById('tree');
-    
-    // Вспомогательная функция для сборки дерева
     const build = (node, level) => {
         if (!node) return `<div class="node">---</div>`;
-        
-        // Рисуем текущий блок
-        let html = `
+        return `
             <div class="branch">
-                <div class="node"><b>${node.login || 'Пусто'}</b></div>
+                <div class="node"><b>${node.login}</b></div>
                 <div class="children">
                     ${build(node.left, level + 1)}
                     ${build(node.right, level + 1)}
                 </div>
             </div>
         `;
-        return html;
     };
-    
     treeDiv.innerHTML = build(data, 1);
 }
