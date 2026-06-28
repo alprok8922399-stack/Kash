@@ -4,8 +4,8 @@ fetch('/data.json')
         const treeDiv = document.getElementById('tree');
         
         // Вспомогательная функция для отрисовки узла или пустой рамки
-        const renderNode = (user, label) => `
-            <div class="node">
+        const renderNode = (user, label, levelClass) => `
+            <div class="node ${levelClass}">
                 ${label}<br>
                 <b>${user ? user.login : 'Свободно'}</b>
             </div>
@@ -13,20 +13,20 @@ fetch('/data.json')
 
         treeDiv.innerHTML = `
             <div class="branch">
-                ${renderNode(data, 'Admin')}
+                ${renderNode(data, 'Admin', 'level-1')}
                 <div class="children">
                     <div class="branch">
-                        ${renderNode(data.left, 'Left 1')}
+                        ${renderNode(data.left, 'Left 1', 'level-2')}
                         <div class="children">
-                            ${renderNode(data.left?.left, 'L-L')}
-                            ${renderNode(data.left?.right, 'L-R')}
+                            ${renderNode(data.left?.left, 'L-L', 'level-3')}
+                            ${renderNode(data.left?.right, 'L-R', 'level-3')}
                         </div>
                     </div>
                     <div class="branch">
-                        ${renderNode(data.right, 'Right 1')}
+                        ${renderNode(data.right, 'Right 1', 'level-2')}
                         <div class="children">
-                            ${renderNode(data.right?.left, 'R-L')}
-                            ${renderNode(data.right?.right, 'R-R')}
+                            ${renderNode(data.right?.left, 'R-L', 'level-3')}
+                            ${renderNode(data.right?.right, 'R-R', 'level-3')}
                         </div>
                     </div>
                 </div>
