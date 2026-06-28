@@ -1,35 +1,50 @@
-fetch('/data.json')
-    .then(response => response.json())
-    .then(data => {
-        const treeDiv = document.getElementById('tree');
-        
-        // Вспомогательная функция для отрисовки узла или пустой рамки
-        const renderNode = (user, label, levelClass) => `
-            <div class="node ${levelClass}">
-                ${label}<br>
-                <b>${user ? user.login : 'Свободно'}</b>
-            </div>
-        `;
+let mockData = {
+    login: "Admin",
+    left: null,
+    right: null
+};
 
-        treeDiv.innerHTML = `
+function renderTree(data) {
+    const treeDiv = document.getElementById('tree');
+    
+    // Рекурсивная функция для отрисовки
+    const build = (node, label, level) => {
+        if (!node) return `<div class="node">---</div>`;
+        return `
             <div class="branch">
-                ${renderNode(data, 'Admin', 'level-1')}
+                <div class="node level-${level > 3 ? 3 : level}">${label}<br><b>${node.login}</b></div>
                 <div class="children">
-                    <div class="branch">
-                        ${renderNode(data.left, 'Left 1', 'level-2')}
-                        <div class="children">
-                            ${renderNode(data.left?.left, 'L-L', 'level-3')}
-                            ${renderNode(data.left?.right, 'L-R', 'level-3')}
-                        </div>
-                    </div>
-                    <div class="branch">
-                        ${renderNode(data.right, 'Right 1', 'level-2')}
-                        <div class="children">
-                            ${renderNode(data.right?.left, 'R-L', 'level-3')}
-                            ${renderNode(data.right?.right, 'R-R', 'level-3')}
-                        </div>
-                    </div>
+                    ${build(node.left, 'L', level + 1)}
+                    ${build(node.right, 'R', level + 1)}
                 </div>
             </div>
         `;
-    });
+    };
+    treeDiv.innerHTML = build(data, 'Admin', 1);
+}
+
+// Функция поиска пустого места
+function addMockUser(node, login) {
+    if (!node.left) {
+        node.left = { login: login, left: null, right: null };
+        return true;
+    }
+    if (addMockUser(node.left, login)) return true;
+    if (!node.right) {
+        node.right = { login: login, left: null, right: null };
+        return true;
+    }
+    return addMockUser(node.right, login);
+}
+
+// Авто-заполнение каждые 3 секунды
+let counter = 1;
+setInterval(() => {
+    if (addMockUser(mockData, `User_${counter}`)) {
+        renderTree(mockData);
+        counter++;
+    }
+}, 3000);
+
+// Первый запуск
+renderTree(mockData);
