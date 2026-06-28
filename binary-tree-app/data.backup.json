@@ -1,0 +1,13 @@
+{
+  "login": "Admin",
+  "left": {
+    "login": "User_Left_1",
+    "left": null,
+    "right": null
+  },
+  "right": {
+    "login": "User_Right_1",
+    "left": null,
+    "right": null
+  }
+}
