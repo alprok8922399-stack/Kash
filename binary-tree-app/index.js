@@ -8,27 +8,37 @@ app.use(express.static('public'));
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Рекурсивная функция для поиска первой пустой ячейки
-function findAndFill(node, login) {
-    if (!node.left) {
-        node.left = { login: login, left: null, right: null };
-        return true;
-    }
-    if (findAndFill(node.left, login)) return true;
+// Функция поиска места по уровням (как курсор)
+function findPlace(node, login) {
+    let queue = [node];
     
-    if (!node.right) {
-        node.right = { login: login, left: null, right: null };
-        return true;
+    while (queue.length > 0) {
+        let current = queue.shift();
+
+        // Проверяем левого ребенка
+        if (!current.left) {
+            current.left = { login: login, left: null, right: null };
+            return true;
+        } else {
+            queue.push(current.left);
+        }
+
+        // Проверяем правого ребенка
+        if (!current.right) {
+            current.right = { login: login, left: null, right: null };
+            return true;
+        } else {
+            queue.push(current.right);
+        }
     }
-    return findAndFill(node.right, login);
+    return false;
 }
 
 app.post('/add-user', (req, res) => {
     const { login } = req.body;
     let data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
 
-    // Запускаем поиск места, начиная с Admin
-    if (findAndFill(data, login)) {
+    if (findPlace(data, login)) {
         fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
         res.send({ success: true });
     } else {
@@ -36,4 +46,4 @@ app.post('/add-user', (req, res) => {
     }
 });
 
-app.listen(3000, () => console.log('Сервер запущен. Дерево растет бесконечно!'));
+app.listen(3000, () => console.log('Сервер работает по правилу «Курсора»'));
