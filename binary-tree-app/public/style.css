@@ -1,21 +1,24 @@
-body { font-family: -apple-system, sans-serif; text-align: center; background: #2c3e50; color: white; margin: 0; padding: 5px; }
-.tree-container { display: flex; flex-direction: column; align-items: center; }
+body { font-family: -apple-system, sans-serif; text-align: center; background: #2c3e50; color: white; margin: 0; padding: 20px; }
+.tree-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
 
-.branch { display: flex; flex-direction: column; align-items: center; }
-.children { display: flex; justify-content: center; }
-
+/* Карточка пользователя */
 .node { 
     background: #ecf0f1; 
     color: #2c3e50;
-    border-radius: 4px; 
-    padding: 5px; 
-    margin: 2px; 
-    width: 60px; 
-    font-size: 9px;
+    border-radius: 12px; 
+    padding: 15px; 
+    margin: 10px; 
+    width: 85%; 
+    max-width: 300px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     font-weight: bold;
 }
 
+/* Контейнер для веток */
+.children { display: flex; width: 100%; justify-content: center; }
+.branch { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
 /* Цвета уровней */
-.level-1 { background: #f1c40f !important; }
-.level-2 { background: #3498db !important; color: white !important; }
-.level-3 { background: #bdc3c7 !important; }
+.level-1 { background: #f1c40f !important; } /* Admin - Золотой */
+.level-2 { background: #3498db !important; color: white !important; } /* Партнеры - Голубой */
+.level-3 { background: #bdc3c7 !important; } /* Нижние - Серый */
