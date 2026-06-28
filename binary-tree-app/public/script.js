@@ -2,8 +2,6 @@ fetch('/data.json')
     .then(response => response.json())
     .then(data => {
         const treeDiv = document.getElementById('tree');
-        
-        // Функция с добавлением классов уровней
         const renderNode = (user, label, levelClass) => `
             <div class="node ${levelClass}">${label}<br><b>${user ? user.login : '---'}</b></div>
         `;
