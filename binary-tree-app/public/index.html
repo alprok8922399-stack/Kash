@@ -5,13 +5,25 @@
     <title>Бинарная структура</title>
     <style>
         body { font-family: sans-serif; text-align: center; }
-        .node { border: 1px solid #ccc; padding: 10px; margin: 5px; display: inline-block; }
+        .node { border: 2px solid #333; padding: 15px; margin: 10px; display: inline-block; border-radius: 8px; }
     </style>
 </head>
 <body>
-    <h1>Бинарная структура пользователей</h1>
-    <div id="tree">
-        <div class="node">Admin</div>
-    </div>
+    <h1>Структура бинарного маркетинга</h1>
+    <div id="tree">Загрузка данных...</div>
+
+    <script>
+        fetch('/data.json')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('tree').innerHTML = `
+                    <div class="node">Логин: ${data.login}</div>
+                    <div>
+                        <div class="node">Лево: ${data.left ? data.left.login : 'Пусто'}</div>
+                        <div class="node">Право: ${data.right ? data.right.login : 'Пусто'}</div>
+                    </div>
+                `;
+            });
+    </script>
 </body>
 </html>
