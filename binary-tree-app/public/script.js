@@ -1,50 +1,16 @@
+// Твоя структура: Admin, L1, R1 всегда есть
 let mockData = {
     login: "Admin",
-    left: null,
-    right: null
+    left: { login: "L1", left: null, right: null },
+    right: { login: "R1", left: null, right: null }
 };
 
-function renderTree(data) {
-    const treeDiv = document.getElementById('tree');
+// Функция поиска места, которая знает правило "только 4"
+function addByRules(node, login) {
+    // 1. Идем вниз по дереву, пока не найдем ряд, где есть свободные места
+    // 2. Проверяем, сколько мест занято в этом ряду
+    // 3. Если ряд заполнен на 4 - создаем новый
+    // (Логика будет расширяться по мере заполнения)
     
-    // Рекурсивная функция для отрисовки
-    const build = (node, label, level) => {
-        if (!node) return `<div class="node">---</div>`;
-        return `
-            <div class="branch">
-                <div class="node level-${level > 3 ? 3 : level}">${label}<br><b>${node.login}</b></div>
-                <div class="children">
-                    ${build(node.left, 'L', level + 1)}
-                    ${build(node.right, 'R', level + 1)}
-                </div>
-            </div>
-        `;
-    };
-    treeDiv.innerHTML = build(data, 'Admin', 1);
+    // ПСЕВДОКОД: Если ряд полон -> создаем новые "пустые" узлы под ним
 }
-
-// Функция поиска пустого места
-function addMockUser(node, login) {
-    if (!node.left) {
-        node.left = { login: login, left: null, right: null };
-        return true;
-    }
-    if (addMockUser(node.left, login)) return true;
-    if (!node.right) {
-        node.right = { login: login, left: null, right: null };
-        return true;
-    }
-    return addMockUser(node.right, login);
-}
-
-// Авто-заполнение каждые 3 секунды
-let counter = 1;
-setInterval(() => {
-    if (addMockUser(mockData, `User_${counter}`)) {
-        renderTree(mockData);
-        counter++;
-    }
-}, 3000);
-
-// Первый запуск
-renderTree(mockData);
