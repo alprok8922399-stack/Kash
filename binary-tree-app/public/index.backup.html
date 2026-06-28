@@ -3,29 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Бинарная структура</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; }
-        .node { border: 2px solid #333; padding: 10px; margin: 10px; display: inline-block; border-radius: 5px; width: 80px; }
-        .container { display: flex; justify-content: center; }
-        .level { margin-top: 20px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <h1>Структура бинарного маркетинга</h1>
-    <div id="tree">Загрузка данных...</div>
-
-    <script>
-        fetch('/data.json')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('tree').innerHTML = `
-                    <div class="node"><b>${data.login}</b></div>
-                    <div class="container">
-                        <div class="node">Лево:<br>${data.left ? data.left.login : 'Пусто'}</div>
-                        <div class="node">Право:<br>${data.right ? data.right.login : 'Пусто'}</div>
-                    </div>
-                `;
-            });
-    </script>
+    <div id="tree" class="tree-container">Загрузка данных...</div>
+    <script src="script.js"></script>
 </body>
 </html>
