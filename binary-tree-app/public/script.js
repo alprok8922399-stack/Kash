@@ -1,56 +1,44 @@
-let treeData = {
-    login: "Admin",
-    left: { login: "L1", left: null, right: null },
-    right: { login: "R1", left: null, right: null }
-};
-
-// Функция для поиска и заполнения по "Правилу четырех"
-function addByRuleOfFour(node, login) {
-    let queue = [node];
-    while (queue.length > 0) {
-        let current = queue.shift();
-        
-        // Если ячейка свободна - занимаем
-        if (!current.left) {
-            current.left = { login: login, left: null, right: null };
-            return true;
-        }
-        queue.push(current.left);
-        
-        if (!current.right) {
-            current.right = { login: login, left: null, right: null };
-            return true;
-        }
-        queue.push(current.right);
-    }
-    return false;
-}
-
-// Авто-заполнение каждые 2 секунды
-let counter = 1;
-setInterval(() => {
-    if (addByRuleOfFour(treeData, `User_${counter}`)) {
-        renderTree(treeData);
-        counter++;
-    }
-}, 2000);
-
-// Отрисовка
+// Функция отрисовки с "Правилом четырех"
 function renderTree(data) {
     const treeDiv = document.getElementById('tree');
-    const build = (node, level) => {
+
+    // Функция проверки: заполнен ли узел и все его дети на уровне
+    const isLevelFull = (node) => {
+        return node && node.left && node.right;
+    };
+
+    const build = (node, label, level) => {
+        // Узел существует
         if (!node) return `<div class="node">---</div>`;
+
+        // ПРОВЕРКА: Рисовать ли детей? 
+        // Если это уровень, где должны быть 4 ячейки - проверяем их заполненность
+        let childrenHTML = '';
+        if (level === 2) { // Уровень User_1...User_4
+            if (isLevelFull(node.left) && isLevelFull(node.right)) {
+                childrenHTML = `
+                    <div class="children">
+                        ${build(node.left.left, '...', level + 1)}
+                        ${build(node.left.right, '...', level + 1)}
+                        ${build(node.right.left, '...', level + 1)}
+                        ${build(node.right.right, '...', level + 1)}
+                    </div>`;
+            }
+        } else {
+            // Для остальных уровней стандартная отрисовка
+            childrenHTML = `
+                <div class="children">
+                    ${build(node.left, '...', level + 1)}
+                    ${build(node.right, '...', level + 1)}
+                </div>`;
+        }
+
         return `
             <div class="branch">
                 <div class="node level-${level > 3 ? 3 : level}"><b>${node.login}</b></div>
-                <div class="children">
-                    ${build(node.left, level + 1)}
-                    ${build(node.right, level + 1)}
-                </div>
+                ${childrenHTML}
             </div>
         `;
     };
-    treeDiv.innerHTML = build(data, 1);
+    treeDiv.innerHTML = build(data, 'Admin', 1);
 }
-
-renderTree(treeData);
