@@ -8,32 +8,40 @@ app.use(express.static('public'));
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Рекурсивная функция для поиска первой пустой ячейки
-function findAndFill(node, login) {
-    if (!node.left) {
-        node.left = { login: login, left: null, right: null };
+// Алгоритм с "Правилом четырех"
+function addByRuleOfFour(node, login) {
+    // Получаем текущие слоты 2-го уровня (LL, LR, RL, RR)
+    const level2 = [
+        node.left.left, node.left.right,
+        node.right.left, node.right.right
+    ];
+
+    // Проверяем: заполнена ли вся "четверка"?
+    const isFourFull = level2.every(slot => slot !== null);
+
+    if (!isFourFull) {
+        // Если не заполнена - "курсор" заполняет дырки в этой четверке
+        if (!node.left.left) node.left.left = { login, left: null, right: null };
+        else if (!node.left.right) node.left.right = { login, left: null, right: null };
+        else if (!node.right.left) node.right.left = { login, left: null, right: null };
+        else if (!node.right.right) node.right.right = { login, left: null, right: null };
         return true;
+    } else {
+        // Если заполнена - переходим глубже (здесь будет логика расширения на 8)
+        return false; 
     }
-    if (findAndFill(node.left, login)) return true;
-    
-    if (!node.right) {
-        node.right = { login: login, left: null, right: null };
-        return true;
-    }
-    return findAndFill(node.right, login);
 }
 
 app.post('/add-user', (req, res) => {
     const { login } = req.body;
     let data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
 
-    // Запускаем поиск места, начиная с Admin
-    if (findAndFill(data, login)) {
+    if (addByRuleOfFour(data, login)) {
         fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
         res.send({ success: true });
     } else {
-        res.status(400).send('Мест нет!');
+        res.status(400).send('Четверка заполнена, жду команду на расширение!');
     }
 });
 
-app.listen(3000, () => console.log('Сервер запущен. Дерево растет бесконечно!'));
+app.listen(3000, () => console.log('Система работает по строгому ПРАВИЛУ ЧЕТЫРЕХ'));
