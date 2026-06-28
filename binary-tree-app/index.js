@@ -8,42 +8,32 @@ app.use(express.static('public'));
 
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Алгоритм поиска пустого места "как курсор"
-function findNextEmptySlot(node, login) {
-    let queue = [node];
-    
-    while (queue.length > 0) {
-        let current = queue.shift();
-
-        // Проверяем левую позицию
-        if (!current.left) {
-            current.left = { login: login, left: null, right: null };
-            return true;
-        } else {
-            queue.push(current.left);
-        }
-
-        // Проверяем правую позицию
-        if (!current.right) {
-            current.right = { login: login, left: null, right: null };
-            return true;
-        } else {
-            queue.push(current.right);
-        }
+// Рекурсивная функция для поиска первой пустой ячейки
+function findAndFill(node, login) {
+    if (!node.left) {
+        node.left = { login: login, left: null, right: null };
+        return true;
     }
-    return false;
+    if (findAndFill(node.left, login)) return true;
+    
+    if (!node.right) {
+        node.right = { login: login, left: null, right: null };
+        return true;
+    }
+    return findAndFill(node.right, login);
 }
 
 app.post('/add-user', (req, res) => {
     const { login } = req.body;
     let data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
 
-    if (findNextEmptySlot(data, login)) {
+    // Запускаем поиск места, начиная с Admin
+    if (findAndFill(data, login)) {
         fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
         res.send({ success: true });
     } else {
-        res.status(400).send('Структура переполнена');
+        res.status(400).send('Мест нет!');
     }
 });
 
-app.listen(3000, () => console.log('Система работает по правилу «Курсора»'));
+app.listen(3000, () => console.log('Сервер запущен. Дерево растет бесконечно!'));
