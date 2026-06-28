@@ -4,10 +4,10 @@ fetch('/data.json')
         const treeDiv = document.getElementById('tree');
         treeDiv.innerHTML = `
             <div class="branch">
-                <div class="node"><b>${data.login}</b></div>
+                <div class="node">Admin: ${data.login}</div>
                 <div class="children">
-                    <div class="node">Left:<br>${data.left ? data.left.login : 'Empty'}</div>
-                    <div class="node">Right:<br>${data.right ? data.right.login : 'Empty'}</div>
+                    <div class="node">L: ${data.left ? data.left.login : '—'}</div>
+                    <div class="node">R: ${data.right ? data.right.login : '—'}</div>
                 </div>
             </div>
         `;
