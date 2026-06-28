@@ -2,27 +2,12 @@ fetch('/data.json')
     .then(response => response.json())
     .then(data => {
         const treeDiv = document.getElementById('tree');
-        const renderNode = (user, label) => `
-            <div class="node">${label}<br><b>${user ? user.login : '---'}</b></div>
-        `;
         treeDiv.innerHTML = `
             <div class="branch">
-                ${renderNode(data, 'Admin')}
+                <div class="node">Admin: ${data.login}</div>
                 <div class="children">
-                    <div class="branch">
-                        ${renderNode(data.left, 'L1')}
-                        <div class="children">
-                            ${renderNode(data.left?.left, 'LL')}
-                            ${renderNode(data.left?.right, 'LR')}
-                        </div>
-                    </div>
-                    <div class="branch">
-                        ${renderNode(data.right, 'R1')}
-                        <div class="children">
-                            ${renderNode(data.right?.left, 'RL')}
-                            ${renderNode(data.right?.right, 'RR')}
-                        </div>
-                    </div>
+                    <div class="node">L: ${data.left ? data.left.login : '—'}</div>
+                    <div class="node">R: ${data.right ? data.right.login : '—'}</div>
                 </div>
             </div>
         `;
