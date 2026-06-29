@@ -1,47 +1,81 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static('public'));
 
-const DATA_FILE = path.join(__dirname, 'data.json');
+// Храним дерево прямо в оперативной памяти сервера, чтобы всё летало
+let treeData = {
+    login: "Admin", id: "Admin",
+    left: { login: "User_Left_1", id: "A1", left: null, right: null },
+    right: { login: "User_Right_1", id: "A2", left: null, right: null }
+};
 
-// Алгоритм с "Правилом четырех"
-function addByRuleOfFour(node, login) {
-    // Получаем текущие слоты 2-го уровня (LL, LR, RL, RR)
-    const level2 = [
-        node.left.left, node.left.right,
-        node.right.left, node.right.right
-    ];
+// Переменные для отслеживания текущего пустого места
+let currentTargetLevel = 3; 
+let currentTargetNum = 1;
 
-    // Проверяем: заполнена ли вся "четверка"?
-    const isFourFull = level2.every(slot => slot !== null);
-
-    if (!isFourFull) {
-        // Если не заполнена - "курсор" заполняет дырки в этой четверке
-        if (!node.left.left) node.left.left = { login, left: null, right: null };
-        else if (!node.left.right) node.left.right = { login, left: null, right: null };
-        else if (!node.right.left) node.right.left = { login, left: null, right: null };
-        else if (!node.right.right) node.right.right = { login, left: null, right: null };
-        return true;
-    } else {
-        // Если заполнена - переходим глубже (здесь будет логика расширения на 8)
-        return false; 
-    }
+function getLetterByLevel(level) {
+    if (level === 1) return "Admin";
+    return String.fromCharCode(65 + level - 2);
 }
 
-app.post('/add-user', (req, res) => {
-    const { login } = req.body;
-    let data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-
-    if (addByRuleOfFour(data, login)) {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-        res.send({ success: true });
-    } else {
-        res.status(400).send('Четверка заполнена, жду команду на расширение!');
+function autoInsert(root, targetId, loginName) {
+    if (!root) return false;
+    const targetLetter = targetId.replace(/[\d]/g, '');
+    const targetNum = parseInt(targetId.replace(/[^\d]/g, ''));
+    
+    let parentId = "";
+    if (targetLetter === "A") parentId = "Admin";
+    else {
+        const parentLetter = String.fromCharCode(targetLetter.charCodeAt(0) - 1);
+        const parentNum = Math.ceil(targetNum / 2);
+        parentId = parentLetter === "@" ? "Admin" : `${parentLetter}${parentNum}`;
     }
+
+    if (root.id === parentId) {
+        if (targetNum % 2 !== 0) {
+            if (!root.left) {
+                root.left = { login: loginName, id: targetId, left: null, right: null };
+                return true;
+            }
+        } else {
+            if (!root.right) {
+                root.right = { login: loginName, id: targetId, left: null, right: null };
+                return true;
+            }
+        }
+    }
+    return autoInsert(root.left, targetId, loginName) || autoInsert(root.right, targetId, loginName);
+}
+
+// 1. API получения структуры дерева
+app.get('/api/tree', (req, res) => {
+    res.json(treeData);
 });
 
-app.listen(3000, () => console.log('Система работает по строгому ПРАВИЛУ ЧЕТЫРЕХ'));
+// 2. API регистрации с гостевого сайта
+app.post('/api/register', (req, res) => {
+    const { login } = req.body;
+    if (!login) return res.status(400).json({ success: false, message: "Логин пустой" });
+
+    const letter = getLetterByLevel(currentTargetLevel);
+    const assignedId = `${letter}${currentTargetNum}`;
+
+    if (autoInsert(treeData, assignedId, login)) {
+        currentTargetNum++;
+        const maxInRow = Math.pow(2, currentTargetLevel - 1); 
+        if (currentTargetNum > maxInRow) {
+            currentTargetLevel++;
+            currentTargetNum = 1;
+        }
+        return res.json({ success: true, id: assignedId });
+    }
+
+    res.status(500).json({ success: false, message: "Не удалось найти место в структуре" });
+});
+
+app.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+});
