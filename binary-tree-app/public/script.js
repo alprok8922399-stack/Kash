@@ -5,63 +5,46 @@ let treeData = {
     right: { login: "User_Right_1", id: "A2", left: null, right: null }
 };
 
-// Единственная и жесткая карта связей: [Левый ребенок, Правый ребенок]
-const childrenMap = {
-    "Admin": ["A1", "A2"],
-    "A1": ["B1", "B2"],
-    "A2": ["B3", "B4"], // Стоп, чтобы в ряду B было 8 ячеек под A1 и A2:
-    // Под A1 идут: ветка B1 (у нее свои дети) и ветка B2. 
-    // Давай сделаем стандартное бинарное распределение:
-    "A1": ["B1", "B2"], // По 2 ребенка под каждым узлом ряда A (всего 4 ячейки в B1-B4)
-    "A2": ["B3", "B4"], 
-    
-    // А вот под четверкой B1-B4 открываются 8 ячеек ряда C!
-    "B1": ["C1", "C2"],
-    "B2": ["C3", "C4"],
-    "B3": ["C5", "C6"],
-    "B4": ["C7", "C8"],
-    
-    // Под четверкой B5-B8 (когда они появятся) откроются C9-C16
-    "B5": ["C9", "C10"],
-    "B6": ["C11", "C12"],
-    "B7": ["C13", "C14"],
-    "B8": ["C16", "C16"] // Опечатка исключена
-};
-
-// Перевернем карту для удобства поиска родителя при вставке
-const parentMap = {};
-for (let parent in childrenMap) {
-    const [left, right] = childrenMap[parent];
-    parentMap[left] = parent;
-    parentMap[right] = parent;
+// Функция проверки: есть ли узел в дереве?
+function findNodeById(root, id) {
+    if (!root) return null;
+    if (root.id === id) return root;
+    return findNodeById(root.left, id) || findNodeById(root.right, id);
 }
 
-// Проверка наличия узла
-function hasNode(root, id) {
-    if (!root) return false;
-    if (root.id === id) return true;
-    return hasNode(root.left, id) || hasNode(root.right, id);
+// Генератор букв для уровней (1=Admin, 2=A, 3=B, 4=C, 5=D, 6=E и т.д. до бесконечности)
+function getLetterByLevel(level) {
+    if (level === 1) return "Admin";
+    return String.fromCharCode(65 + level - 2); // 2 -> A, 3 -> B, 4 -> C...
 }
 
-// Отрисовка
+// Отрисовка дерева
 function renderTree(data) {
     const treeDiv = document.getElementById('tree');
 
     const build = (node, currentId, level) => {
-        // Условия показа рядов по твоему правилу четырех
+        const currentLetter = getLetterByLevel(level);
+
+        // --- ПРАВИЛО ЧЕТЫРЁХ ДЛЯ ЛЮБОЙ ГЛУБИНЫ ---
         let showThisNode = true;
-        if (currentId.startsWith("C")) {
-            const num = parseInt(currentId.replace("C", ""));
-            if (num <= 8) {
-                showThisNode = hasNode(treeData, "B4"); // Показываем C1-C8 только после B4
-            } else {
-                showThisNode = hasNode(treeData, "B8"); // Показываем C9-C16 только после B8
-            }
+        
+        // Начиная с уровня C (level 4) и ниже, проверяем заполненность блоков по 4 ячейки сверху
+        if (level > 3) {
+            const parentLetter = getLetterByLevel(level - 1);
+            const num = parseInt(currentId.replace(/[^\d]/g, ''));
+            
+            // Вычисляем, какая четверка (участок из 4-х узлов) в родительском ряду отвечает за этот блок
+            // Каждые 4 заполненных родителя открывают свои 8 детей снизу
+            const triggerParentGroup = Math.ceil(num / 2); // Номер родительского узла
+            const targetParentId = `${parentLetter}${Math.ceil(triggerParentGroup / 4) * 4}`;
+            
+            // Если замыкающий узел четверки (например, B4, B8, C4, C8...) еще не создан — скрываем ветку
+            showThisNode = !!findNodeById(treeData, targetParentId);
         }
 
         if (!showThisNode) return '';
 
-        // Если узел должен быть отрисован, но он пустой
+        // Если по триггеру ячейка открыта, но пользователя в ней физически нет — рисуем пустую рамку
         if (!node) {
             return `
                 <div class="branch">
@@ -70,8 +53,16 @@ function renderTree(data) {
             `;
         }
 
-        // Берем ID будущих детей строго из нашей карты связей
-        const [leftId, rightId] = childrenMap[currentId] || ["", ""];
+        // Автоматически вычисляем ID для левого и правого ребенка (без карт и ограничений)
+        let leftId = "", rightId = "";
+        if (node.id === "Admin") {
+            leftId = "A1"; rightId = "A2";
+        } else {
+            const num = parseInt(currentId.replace(/[^\d]/g, ''));
+            const nextLetter = getLetterByLevel(level + 1);
+            leftId = `${nextLetter}${num * 2 - 1}`;
+            rightId = `${nextLetter}${num * 2}`;
+        }
 
         return `
             <div class="branch">
@@ -79,12 +70,10 @@ function renderTree(data) {
                     <b>${node.login}</b><br>
                     <span class="id-tag">${node.id}</span>
                 </div>
-                ${(leftId || rightId) ? `
                 <div class="children">
                     ${build(node.left, leftId, level + 1)}
                     ${build(node.right, rightId, level + 1)}
                 </div>
-                ` : ''}
             </div>
         `;
     };
@@ -92,50 +81,75 @@ function renderTree(data) {
     treeDiv.innerHTML = build(data, "Admin", 1);
 }
 
-// Вставка строго по карте
-function forceInsertByMap(root, targetId, loginName) {
+// Автоматический бесконечный поиск родителя и вставка в структуру
+function autoInsert(root, targetId, loginName) {
     if (!root) return false;
 
-    const parentId = parentMap[targetId];
+    // Определяем букву целевого ID и его номер
+    const targetLetter = targetId.replace(/[\d]/g, '');
+    const targetNum = parseInt(targetId.replace(/[^\d]/g, ''));
+    
+    // Вычисляем, какой ID должен быть у родителя
+    let parentId = "";
+    if (targetLetter === "A") parentId = "Admin";
+    else {
+        // Предыдущая буква в алфавите
+        const parentLetter = String.fromCharCode(targetLetter.charCodeAt(0) - 1);
+        const parentNum = Math.ceil(targetNum / 2);
+        parentId = parentLetter === "@" ? "Admin" : `${parentLetter}${parentNum}`;
+    }
 
+    // Если текущий узел и есть вычисленный родитель
     if (root.id === parentId) {
-        const [leftId, rightId] = childrenMap[parentId];
-        if (targetId === leftId && !root.left) {
-            root.left = { login: loginName, id: targetId, left: null, right: null };
-            return true;
-        }
-        if (targetId === rightId && !root.right) {
-            root.right = { login: loginName, id: targetId, left: null, right: null };
-            return true;
+        if (targetNum % 2 !== 0) {
+            if (!root.left) {
+                root.left = { login: loginName, id: targetId, left: null, right: null };
+                return true;
+            }
+        } else {
+            if (!root.right) {
+                root.right = { login: loginName, id: targetId, left: null, right: null };
+                return true;
+            }
         }
     }
 
-    return forceInsertByMap(root.left, targetId, loginName) || forceInsertByMap(root.right, targetId, loginName);
+    // Рекурсивный спуск сквозь все уровни
+    return autoInsert(root.left, targetId, loginName) || autoInsert(root.right, targetId, loginName);
 }
 
-// Очередь заполнения (Ряд B состоит из B1-B4 под A1/A2)
-// Примечание: Чтобы под Admin была структура 2 -> 4 -> 8, ряд B — это 4 ячейки (B1,B2,B3,B4)
-function addByStrictSequence(node, login) {
-    let targets = [];
-    for (let i = 1; i <= 4; i++) targets.push(`B${i}`);
-    for (let i = 1; i <= 8; i++) targets.push(`C${i}`);
+// Генератор бесконечной очереди ID по рядам
+let currentTargetLevel = 3; // Начинаем заполнять с ряда B (level 3)
+let currentTargetNum = 1;
 
-    for (let tId of targets) {
-        if (!hasNode(node, tId)) {
-            return forceInsertByMap(node, tId, login);
+function addNextUser(login) {
+    const letter = getLetterByLevel(currentTargetLevel);
+    const targetId = `${letter}${currentTargetNum}`;
+    
+    if (autoInsert(treeData, targetId, login)) {
+        currentTargetNum++;
+        
+        // Если заполнили весь текущий ряд (для B это 4, для C — 8, для D — 16 и т.д.)
+        // В твоем маркетинге размер ряда шагает как: уровень 3(B)=4 ячейки, уровень 4(C)=8 ячеек и т.д.
+        const maxInRow = Math.pow(2, currentTargetLevel - 1); 
+        
+        if (currentTargetNum > maxInRow) {
+            currentTargetLevel++; // Переходим на следующий ряд (на букву ниже)
+            currentTargetNum = 1;  // Сбрасываем счетчик для нового ряда
         }
+        return true;
     }
     return false;
 }
 
-// Интервал 0.8 сек
+// Таймер симуляции (0.6 секунды на человека, бесконечный полет)
 let counter = 1;
-const interval = setInterval(() => {
-    if (addByStrictSequence(treeData, `User_${counter}`)) {
+setInterval(() => {
+    if (addNextUser(`User_${counter}`)) {
         renderTree(treeData);
         counter++;
     }
-    if (counter > 12) clearInterval(interval);
-}, 800);
+}, 600);
 
+// Стартовая отрисовка
 renderTree(treeData);
