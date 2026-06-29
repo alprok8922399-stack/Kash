@@ -1,24 +1,31 @@
 const express = require('express');
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static('public'));
 
-// Храним дерево прямо в оперативной памяти сервера, чтобы всё летало
+// Стартовая структура бинара в оперативной памяти сервера
 let treeData = {
     login: "Admin", id: "Admin",
     left: { login: "User_Left_1", id: "A1", left: null, right: null },
     right: { login: "User_Right_1", id: "A2", left: null, right: null }
 };
 
-// Переменные для отслеживания текущего пустого места
+// Переменные для поиска свободных мест по рядам
 let currentTargetLevel = 3; 
 let currentTargetNum = 1;
 
 function getLetterByLevel(level) {
     if (level === 1) return "Admin";
     return String.fromCharCode(65 + level - 2);
+}
+
+function findNodeById(root, id) {
+    if (!root) return null;
+    if (root.id === id) return root;
+    return findNodeById(root.left, id) || findNodeById(root.right, id);
 }
 
 function autoInsert(root, targetId, loginName) {
@@ -50,12 +57,12 @@ function autoInsert(root, targetId, loginName) {
     return autoInsert(root.left, targetId, loginName) || autoInsert(root.right, targetId, loginName);
 }
 
-// 1. API получения структуры дерева
+// Отдача структуры дерева на фронтенд
 app.get('/api/tree', (req, res) => {
     res.json(treeData);
 });
 
-// 2. API регистрации с гостевого сайта
+// Регистрация нового логина с гостевой страницы
 app.post('/api/register', (req, res) => {
     const { login } = req.body;
     if (!login) return res.status(400).json({ success: false, message: "Логин пустой" });
@@ -76,6 +83,15 @@ app.post('/api/register', (req, res) => {
     res.status(500).json({ success: false, message: "Не удалось найти место в структуре" });
 });
 
+// Железобетонная отдача страницы регистрации, где бы файл ни лежал
+app.get('/join.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'join.html'), (err) => {
+        if (err) {
+            res.sendFile(path.join(__dirname, 'join.html'));
+        }
+    });
+});
+
 app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
+    console.log(`Сервер успешно запущен на порту ${PORT}`);
 });
