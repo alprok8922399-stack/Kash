@@ -5,27 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Регистрация в бинар</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; background: #f4f4f9; }
-        input { padding: 10px; width: 200px; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; }
-        button { padding: 10px 20px; font-size: 16px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px; }
+        body { font-family: Arial, sans-serif; text-align: center; padding-top: 80px; background: #f4f4f9; color: #333; }
+        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { padding: 12px; width: 80%; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 15px; outline: none; }
+        button { padding: 12px 25px; width: 87%; font-size: 16px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #218838; }
+        #status { margin-top: 20px; font-weight: bold; font-size: 16px; }
     </style>
 </head>
 <body>
-    <h2>Введи свой логин для входа в матрицу:</h2>
-    <input type="text" id="userLogin" placeholder="Твой логин..." required>
-    <button onclick="sendRegistration()">Залететь</button>
-
-    <p id="status" style="margin-top: 20px; font-weight: bold;"></p>
+    <div class="container">
+        <h2>Регистрация в систему</h2>
+        <p style="color: #666; margin-bottom: 20px;">Введите логин для автоматической вставки в структуру</p>
+        <input type="text" id="userLogin" placeholder="Введите ваш login..." required>
+        <br>
+        <button onclick="sendRegistration()">Залететь в матрицу</button>
+        <p id="status"></p>
+    </div>
 
     <script>
         function sendRegistration() {
             const login = document.getElementById('userLogin').value.trim();
             const status = document.getElementById('status');
-            if(!login) return alert('Введите логин!');
+            if(!login) return alert('Пожалуйста, введите логин!');
 
-            status.innerText = "Отправка...";
+            status.style.color = "#333";
+            status.innerText = "Отправка данных на сервер...";
             
-            // Шлем запрос на наш сервер
             fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -35,7 +41,7 @@
             .then(data => {
                 if(data.success) {
                     status.style.color = "green";
-                    status.innerText = `Успешно! Ты встал на место: ${data.id}`;
+                    status.innerText = `Успех! Логин "${login}" успешно занял ячейку: ${data.id}`;
                     document.getElementById('userLogin').value = '';
                 } else {
                     status.style.color = "red";
@@ -44,7 +50,7 @@
             })
             .catch(err => {
                 status.style.color = "red";
-                status.innerText = "Ошибка соединения с сервером";
+                status.innerText = "Ошибка соединения с kash-04dt.onrender.com";
             });
         }
     </script>
