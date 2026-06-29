@@ -1,4 +1,3 @@
-// Функция отрисовки (осталась без изменений, твоя бесконечная магия)
 function getLetterByLevel(level) {
     if (level === 1) return "Admin";
     return String.fromCharCode(65 + level - 2);
@@ -62,15 +61,18 @@ function renderTree(data) {
     treeDiv.innerHTML = build(data, "Admin", 1);
 }
 
-// Запрос актуального дерева с сервера каждые 2 секунды
+// Опрос сервера каждые 2 секунды для обновления дерева в реальном времени
 setInterval(() => {
     fetch('/api/tree')
         .then(res => res.json())
         .then(data => {
             renderTree(data);
         })
-        .catch(err => console.error("Ошибка обновления:", err));
+        .catch(err => console.error("Ошибка обновления дерева:", err));
 }, 2000);
 
-// Первый запуск при загрузке страницы
-fetch('/api/tree').then(res => res.json()).then(data => renderTree(data));
+// Стартовая загрузка дерева при открытии страницы
+fetch('/api/tree')
+    .then(res => res.json())
+    .then(data => renderTree(data))
+    .catch(err => console.error("Ошибка первой загрузки:", err));
