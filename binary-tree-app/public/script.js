@@ -5,7 +5,25 @@ let treeData = {
     right: { login: "User_Right_1", id: "A2", left: null, right: null }
 };
 
-// Функция быстрой проверки: есть ли узел в памяти?
+// Четкая карта родителей: КТО ПОД КЕМ СТОИТ (Железное правило)
+const parentMap = {
+    // Ряд B строится под рядом A
+    "B1": "A1", "B2": "A1", "B3": "A1", "B4": "A1", // Первая четверка
+    "B5": "A2", "B6": "A2", "B7": "A2", "B8": "A2", // Вторая четверка
+    
+    // Ряд C строится строго под соответствующими B
+    "C1": "B1", "C2": "B1",
+    "C3": "B2", "C4": "B2",
+    "C5": "B3", "C6": "B3",
+    "C7": "B4", "C8": "B4", // Эти откроются после B4
+    
+    "C9": "B5", "C10": "B5",
+    "C11": "B6", "C12": "B6",
+    "C13": "B7", "C14": "B7",
+    "C15": "B8", "C16": "B8"  // Эти откроются после B8
+};
+
+// Функция проверки: есть ли узел в памяти?
 function hasNode(root, id) {
     if (!root) return false;
     if (root.id === id) return true;
@@ -20,26 +38,21 @@ function renderTree(data) {
         const letters = ["", "Admin", "A", "B", "C", "D"];
         const currentLetter = letters[level] || "X";
 
-        // Проверяем триггеры отображения нижних рядов ("Правило четырех")
+        // Проверяем твои триггеры "Правила четырех" для показа рамок
         let showThisNode = true;
 
         if (currentLetter === "C") {
             const num = parseInt(currentId.replace("C", ""));
             if (num <= 8) {
-                showThisNode = hasNode(treeData, "B4");
+                showThisNode = hasNode(treeData, "B4"); // Левые 8 рамок
             } else {
-                showThisNode = hasNode(treeData, "B8");
+                showThisNode = hasNode(treeData, "B8"); // Правые 8 рамок
             }
-        } else if (currentLetter === "D") {
-            const num = parseInt(currentId.replace("D", ""));
-            if (num <= 8) showThisNode = hasNode(treeData, "C4");
-            else if (num <= 16) showThisNode = hasNode(treeData, "C8");
-            else if (num <= 24) showThisNode = hasNode(treeData, "C12");
-            else showThisNode = hasNode(treeData, "C16");
         }
 
         if (!showThisNode) return '';
 
+        // Если рамка должна быть, но юзера еще нет
         if (!node) {
             return `
                 <div class="branch">
@@ -48,8 +61,10 @@ function renderTree(data) {
             `;
         }
 
+        // Вычисляем ID будущих детей для отрисовки структуры
         let leftId = "", rightId = "";
         if (node.id === "Admin") { leftId = "A1"; rightId = "A2"; }
+        else if (node.id === "A1") { leftId = "B1"; rightId = "B2"; } // Пример ручного распределения веток
         else {
             const num = parseInt(currentId.replace(/[^\d]/g, ''));
             leftId = `${letters[level + 1] || 'X'}${num * 2 - 1}`;
@@ -73,64 +88,55 @@ function renderTree(data) {
     treeDiv.innerHTML = build(data, "Admin", 1);
 }
 
-// Глобальный поиск и жесткая вставка узла по его ID
-function forceInsert(root, targetId, loginName) {
+// Прямая вставка по карте родителей
+function forceInsertByMap(root, targetId, loginName) {
     if (!root) return false;
 
-    const letters = ["", "Admin", "A", "B", "C", "D"];
-    
-    // Вычисляем, какие ID должны быть у левого и правого сына текущего узла
-    let level = 1;
-    if (root.id.startsWith("A")) level = 2;
-    if (root.id.startsWith("B")) level = 3;
-    if (root.id.startsWith("C")) level = 4;
-    
-    let num = root.id === "Admin" ? 0 : parseInt(root.id.replace(/[^\d]/g, ''));
-    
-    let leftId = "", rightId = "";
-    if (root.id === "Admin") { leftId = "A1"; rightId = "A2"; }
-    else {
-        leftId = `${letters[level + 1] || 'X'}${num * 2 - 1}`;
-        rightId = `${letters[level + 1] || 'X'}${num * 2}`;
+    const parentId = parentMap[targetId];
+
+    // Если текущий узел — это родитель для targetId
+    if (root.id === parentId) {
+        // Проверяем левую и правую ногу. Если это нечетный номер — в левую, четный — в правую
+        const targetNum = parseInt(targetId.replace(/[^\d]/g, ''));
+        if (targetNum % 2 !== 0) {
+            if (!root.left) {
+                root.left = { login: loginName, id: targetId, left: null, right: null };
+                return true;
+            }
+        } else {
+            if (!root.right) {
+                root.right = { login: loginName, id: targetId, left: null, right: null };
+                return true;
+            }
+        }
     }
 
-    // Если нашли родителя для нашего целевого ID
-    if (leftId === targetId) {
-        root.left = { login: loginName, id: targetId, left: null, right: null };
-        return true;
-    }
-    if (rightId === targetId) {
-        root.right = { login: loginName, id: targetId, left: null, right: null };
-        return true;
-    }
-
-    // Ищем дальше в глубину
-    return forceInsert(root.left, targetId, loginName) || forceInsert(root.right, targetId, loginName);
+    // Рекурсивно копаем глубже во все ветки
+    return forceInsertByMap(root.left, targetId, loginName) || forceInsertByMap(root.right, targetId, loginName);
 }
 
-// Главный диспетчер очереди заполнения
+// Диспетчер очереди
 function addByStrictSequence(node, login) {
-    // Генерируем железную очередь: сначала B1..B8, затем C1..C16
     let targets = [];
     for (let i = 1; i <= 8; i++) targets.push(`B${i}`);
     for (let i = 1; i <= 16; i++) targets.push(`C${i}`);
 
     for (let tId of targets) {
         if (!hasNode(node, tId)) {
-            return forceInsert(node, tId, login);
+            return forceInsertByMap(node, tId, login);
         }
     }
     return false;
 }
 
-// Авто-заполнение на максимальной скорости (0.8 секунды)
+// Скорость: 0.8 секунды на шаг
 let counter = 1;
 const interval = setInterval(() => {
     if (addByStrictSequence(treeData, `User_${counter}`)) {
         renderTree(treeData);
         counter++;
     }
-    if (counter > 24) clearInterval(interval); // Заполняем 24 позиции для полной демонстрации
+    if (counter > 24) clearInterval(interval);
 }, 800);
 
 // Старт
