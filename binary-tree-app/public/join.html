@@ -57,7 +57,22 @@
             });
         }
 
-        // Запуск каждую секунду (1000 миллисекунд)
+        // Каждые 2 секунды проверяем, не сбросил ли админ дерево, чтобы обнулить счетчик роботов
+        setInterval(() => {
+            fetch('/api/tree')
+            .then(res => res.json())
+            .then(apiData => {
+                if (apiData.currentLevel === 3 && apiData.registeredInCurrentLevel.length === 0) {
+                    if (userCounter !== 1) {
+                        userCounter = 1; // Сбрасываем счетчик имен роботов назад к единице
+                        addLog(`Обнаружен сброс структуры на сервере! Начинаем с User_1 🔄`, true);
+                    }
+                }
+            })
+            .catch(err => console.error("Ошибка синхронизации счетчика:", err));
+        }, 2000);
+
+        // Запуск генерации пользователей каждую секунду
         setInterval(autoRegister, 1000);
     </script>
 </body>
