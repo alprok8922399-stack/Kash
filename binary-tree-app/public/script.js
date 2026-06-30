@@ -1,3 +1,63 @@
+// Переменные для зума и перетаскивания (Drag & Zoom)
+let scale = 0.8;
+let posX = window.innerWidth / 4;
+let posY = 80;
+let isDragging = false;
+let startX, startY;
+
+const viewport = document.getElementById('viewport');
+const container = document.getElementById('pan-container');
+
+// Применение трансформации к дереву
+function updateTransform() {
+    container.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+}
+
+// Перетаскивание мышкой / пальцем
+viewport.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.control-panel')) return; // Игнорируем клики по кнопкам
+    isDragging = true;
+    startX = e.clientX - posX;
+    startY = e.clientY - posY;
+});
+
+window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    posX = e.clientX - startX;
+    posY = e.clientY - startY;
+    updateTransform();
+});
+
+window.addEventListener('mouseup', () => isDragging = false);
+
+// Зум колесиком мыши
+viewport.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const zoomFactor = 0.05;
+    if (e.deltaY < 0) scale = Math.min(scale + zoomFactor, 2);
+    else scale = Math.max(scale - zoomFactor, 0.2);
+    updateTransform();
+}, { passive: false });
+
+// Функции управления зумом с кнопок
+function zoomIn() { scale = Math.min(scale + 0.1, 2); updateTransform(); }
+function zoomOut() { scale = Math.max(scale - 0.1, 0.2); updateTransform(); }
+function resetView() { scale = 0.8; posX = window.innerWidth / 4; posY = 80; updateTransform(); }
+
+// ФУНКЦИЯ ВРЕМЕННОГО СБРОСА СТРУКТУРЫ В НАЧАЛО 🔄
+function resetTree() {
+    if (confirm("Вы уверены, что хотите полностью обнулить дерево тестов?")) {
+        fetch('/api/reset', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message);
+            resetView();
+        })
+        .catch(err => alert("Ошибка при сбросе дерева"));
+    }
+}
+
+// Отрисовка дерева (Твоя логика блоков по 4 штуки)
 function getLetterByLevel(level) {
     if (level === 1) return "Admin";
     return String.fromCharCode(65 + level - 2);
@@ -20,32 +80,24 @@ function renderTree(apiData) {
     const build = (node, currentId, level) => {
         let showThisNode = true;
         
-        // Логика динамического отображения пустых рамок по группам из 4 элементов
         if (level > 3) {
             const parentLetter = getLetterByLevel(level - 1);
             const num = parseInt(currentId.replace(/[^\d]/g, ''));
-            
-            // Определяем, к какой четверке относится родительский элемент
-            const parentGroup = Math.ceil(num / 2); // Номер родительской ячейки
-            const triggerCheck = Math.ceil(parentGroup / 4) * 4; // Контрольная точка родителя (4, 8, 12, 16...)
+            const parentGroup = Math.ceil(num / 2); 
+            const triggerCheck = Math.ceil(parentGroup / 4) * 4; 
             const triggerParentId = `${parentLetter}${triggerCheck}`;
 
-            // Проверяем, заполнена ли контрольная точка на сервере
             if (serverLevel === level - 1) {
-                // Если мы прямо сейчас заполняем уровень родителя, смотрим, дошли ли мы до триггера
                 showThisNode = serverRegistered.includes(triggerParentId) || !!findNodeById(data, triggerParentId);
             } else if (serverLevel < level - 1) {
-                // Если сервер еще выше этого уровня, рамки точно скрыты
                 showThisNode = false;
             } else {
-                // Если сервер ушел глубже, то все рамки этого уровня уже открыты
                 showThisNode = true;
             }
         }
 
         if (!showThisNode) return '';
 
-        // Отрисовка пустой ячейки-рамки
         if (!node) {
             return `
                 <div class="branch">
@@ -54,7 +106,6 @@ function renderTree(apiData) {
             `;
         }
 
-        // Определение ID дочерних элементов
         let leftId = "", rightId = "";
         if (node.id === "Admin") { leftId = "A1"; rightId = "A2"; }
         else {
@@ -64,7 +115,6 @@ function renderTree(apiData) {
             rightId = `${nextLetter}${num * 2}`;
         }
 
-        // Отрисовка заполненного узла
         return `
             <div class="branch">
                 <div class="node level-${level > 3 ? 3 : level}">
@@ -82,16 +132,16 @@ function renderTree(apiData) {
     treeDiv.innerHTML = build(data, "Admin", 1);
 }
 
-// Посекундный опрос сервера для плавной живой анимации
+// Живой опрос сервера раз в секунду
 setInterval(() => {
     fetch('/api/tree')
         .then(res => res.json())
         .then(apiData => renderTree(apiData))
-        .catch(err => console.error("Ошибка обновления дерева:", err));
+        .catch(err => console.error("Ошибка опроса:", err));
 }, 1000);
 
-// Первичный запрос
-fetch('/api/tree')
-    .then(res => res.json())
-    .then(apiData => renderTree(apiData))
-    .catch(err => console.error("Ошибка первой загрузки:", err));
+// Старт
+fetch('/api/tree').then(res => res.json()).then(apiData => {
+    renderTree(apiData);
+    resetView(); // Устанавливаем дерево красиво по центру при загрузке
+});
