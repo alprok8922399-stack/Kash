@@ -9,24 +9,43 @@ function findNodeById(root, id) {
     return findNodeById(root.left, id) || findNodeById(root.right, id);
 }
 
-function renderTree(data) {
+function renderTree(apiData) {
     const treeDiv = document.getElementById('tree');
-    if (!data) return;
+    if (!apiData) return;
+
+    const data = apiData.tree;
+    const serverLevel = apiData.currentLevel;
+    const serverRegistered = apiData.registeredInCurrentLevel;
 
     const build = (node, currentId, level) => {
-        const currentLetter = getLetterByLevel(level);
         let showThisNode = true;
         
+        // Логика динамического отображения пустых рамок по группам из 4 элементов
         if (level > 3) {
             const parentLetter = getLetterByLevel(level - 1);
             const num = parseInt(currentId.replace(/[^\d]/g, ''));
-            const triggerParentGroup = Math.ceil(num / 2);
-            const targetParentId = `${parentLetter}${Math.ceil(triggerParentGroup / 4) * 4}`;
-            showThisNode = !!findNodeById(data, targetParentId);
+            
+            // Определяем, к какой четверке относится родительский элемент
+            const parentGroup = Math.ceil(num / 2); // Номер родительской ячейки
+            const triggerCheck = Math.ceil(parentGroup / 4) * 4; // Контрольная точка родителя (4, 8, 12, 16...)
+            const triggerParentId = `${parentLetter}${triggerCheck}`;
+
+            // Проверяем, заполнена ли контрольная точка на сервере
+            if (serverLevel === level - 1) {
+                // Если мы прямо сейчас заполняем уровень родителя, смотрим, дошли ли мы до триггера
+                showThisNode = serverRegistered.includes(triggerParentId) || !!findNodeById(data, triggerParentId);
+            } else if (serverLevel < level - 1) {
+                // Если сервер еще выше этого уровня, рамки точно скрыты
+                showThisNode = false;
+            } else {
+                // Если сервер ушел глубже, то все рамки этого уровня уже открыты
+                showThisNode = true;
+            }
         }
 
         if (!showThisNode) return '';
 
+        // Отрисовка пустой ячейки-рамки
         if (!node) {
             return `
                 <div class="branch">
@@ -35,6 +54,7 @@ function renderTree(data) {
             `;
         }
 
+        // Определение ID дочерних элементов
         let leftId = "", rightId = "";
         if (node.id === "Admin") { leftId = "A1"; rightId = "A2"; }
         else {
@@ -44,6 +64,7 @@ function renderTree(data) {
             rightId = `${nextLetter}${num * 2}`;
         }
 
+        // Отрисовка заполненного узла
         return `
             <div class="branch">
                 <div class="node level-${level > 3 ? 3 : level}">
@@ -61,18 +82,16 @@ function renderTree(data) {
     treeDiv.innerHTML = build(data, "Admin", 1);
 }
 
-// Опрос сервера каждые 2 секунды для обновления дерева в реальном времени
+// Посекундный опрос сервера для плавной живой анимации
 setInterval(() => {
     fetch('/api/tree')
         .then(res => res.json())
-        .then(data => {
-            renderTree(data);
-        })
+        .then(apiData => renderTree(apiData))
         .catch(err => console.error("Ошибка обновления дерева:", err));
-}, 2000);
+}, 1000);
 
-// Стартовая загрузка дерева при открытии страницы
+// Первичный запрос
 fetch('/api/tree')
     .then(res => res.json())
-    .then(data => renderTree(data))
+    .then(apiData => renderTree(apiData))
     .catch(err => console.error("Ошибка первой загрузки:", err));
