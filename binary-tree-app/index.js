@@ -6,30 +6,24 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static('public'));
 
-// Базовая структура бинара
-let treeData = {
+// Стартовая структура бинара
+const getInitialTree = () => ({
     login: "Admin", id: "Admin",
     left: { login: "User_Left_1", id: "A1", left: null, right: null },
     right: { login: "User_Right_1", id: "A2", left: null, right: null }
-};
+});
 
-// Храним плоский список созданных id на текущем уровне для шахматного порядка
-let currentLevel = 3; // Начинаем с уровня 3 (буква C)
+let treeData = getInitialTree();
+let currentLevel = 3; 
 let registeredInCurrentLevel = []; 
 
-// Функция генерации шахматного порядка для любого уровня (начиная с C)
 function getChessSequenceForLevel(level) {
     const maxNodes = Math.pow(2, level - 1);
     const sequence = [];
-    
-    // Делим уровень на 4 равных блока
     const blockSize = maxNodes / 4;
-    
-    // Заполняем сначала первые элементы блоков, потом вторые, потом третьи, потом четвертые
     for (let step = 0; step < blockSize; step++) {
         for (let block = 0; block < 4; block++) {
-            const indexInLevel = block * blockSize + step + 1;
-            sequence.push(indexInLevel);
+            sequence.push(block * blockSize + step + 1);
         }
     }
     return sequence;
@@ -69,7 +63,6 @@ function autoInsert(root, targetId, loginName) {
     return autoInsert(root.left, targetId, loginName) || autoInsert(root.right, targetId, loginName);
 }
 
-// Отдача дерева + метаданные о текущем заполнении для правильной отрисовки рамок
 app.get('/api/tree', (req, res) => {
     res.json({
         tree: treeData,
@@ -78,7 +71,6 @@ app.get('/api/tree', (req, res) => {
     });
 });
 
-// Роут регистрации
 app.post('/api/register', (req, res) => {
     const { login } = req.body;
     if (!login) return res.status(400).json({ success: false, message: "Логин пустой" });
@@ -87,7 +79,6 @@ app.post('/api/register', (req, res) => {
     const maxNodes = Math.pow(2, currentLevel - 1);
     const sequence = getChessSequenceForLevel(currentLevel);
 
-    // Определяем, какой по счету узел должен заполниться следующим
     const nextIndexInSeq = registeredInCurrentLevel.length;
     if (nextIndexInSeq >= maxNodes) {
         return res.status(500).json({ success: false, message: "Уровень переполнен" });
@@ -98,25 +89,26 @@ app.post('/api/register', (req, res) => {
 
     if (autoInsert(treeData, assignedId, login)) {
         registeredInCurrentLevel.push(assignedId);
-
-        // Если уровень полностью заполнен, переходим на следующий
         if (registeredInCurrentLevel.length === maxNodes) {
             currentLevel++;
             registeredInCurrentLevel = [];
         }
-
         return res.json({ success: true, id: assignedId });
     }
-
     res.status(500).json({ success: false, message: "Не удалось вставить в структуру" });
 });
 
-// Отдача страницы регистрации
+// ВРЕМЕННЫЙ РОУТ СБРОСА ДЛЯ ТЕСТОВ 🔄
+app.post('/api/reset', (req, res) => {
+    treeData = getInitialTree();
+    currentLevel = 3;
+    registeredInCurrentLevel = [];
+    res.json({ success: true, message: "Структура успешно сброшена в начало!" });
+});
+
 app.get('/join.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'join.html'), (err) => {
-        if (err) {
-            res.sendFile(path.join(__dirname, 'join.html'));
-        }
+        if (err) res.sendFile(path.join(__dirname, 'join.html'));
     });
 });
 
