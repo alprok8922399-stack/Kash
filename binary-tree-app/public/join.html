@@ -3,56 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Регистрация в бинар</title>
+    <title>Авто-Регистрация в бинар</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding-top: 80px; background: #f4f4f9; color: #333; }
-        .container { max-width: 400px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        input { padding: 12px; width: 80%; font-size: 16px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 15px; outline: none; }
-        button { padding: 12px 25px; width: 87%; font-size: 16px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #218838; }
-        #status { margin-top: 20px; font-weight: bold; font-size: 16px; }
+        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; background: #f4f4f9; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .status-box { background: #e9ecef; padding: 15px; border-radius: 5px; min-height: 50px; font-weight: bold; margin-bottom: 20px; }
+        .log-box { text-align: left; max-height: 250px; overflow-y: auto; background: #212529; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 14px; }
+        .badge { background: #007bff; color: white; padding: 5px 10px; border-radius: 20px; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>Регистрация в систему</h2>
-        <p style="color: #666; margin-bottom: 20px;">Введите логин для автоматической вставки в структуру</p>
-        <input type="text" id="userLogin" placeholder="Введите ваш login..." required>
-        <br>
-        <button onclick="sendRegistration()">Залететь в матрицу</button>
-        <p id="status"></p>
+        <h2>Регистратор-Автомат 🤖</h2>
+        <p style="color: #666;">Генерирует и регистрирует пользователей каждую 1 секунду</p>
+        
+        <div class="status-box" id="currentAction">Регистрация запущена...</div>
+        
+        <h3>Лог отправки:</h3>
+        <div class="log-box" id="logConsole"></div>
     </div>
 
     <script>
-        function sendRegistration() {
-            const login = document.getElementById('userLogin').value.trim();
-            const status = document.getElementById('status');
-            if(!login) return alert('Пожалуйста, введите логин!');
+        let userCounter = 1;
+        const logConsole = document.getElementById('logConsole');
+        const currentAction = document.getElementById('currentAction');
 
-            status.style.color = "#333";
-            status.innerText = "Отправка данных на сервер...";
-            
+        function addLog(message, isSuccess = true) {
+            const time = new Date().toLocaleTimeString();
+            const color = isSuccess ? '#00ff00' : '#ff3333';
+            logConsole.innerHTML = `<div style="color: ${color}">[${time}] ${message}</div>` + logConsole.innerHTML;
+        }
+
+        function autoRegister() {
+            const robotLogin = `User_${userCounter}`;
+            currentAction.innerText = `Отправка: ${robotLogin}`;
+
             fetch('/api/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ login: login })
+                body: JSON.stringify({ login: robotLogin })
             })
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    status.style.color = "green";
-                    status.innerText = `Успех! Логин "${login}" успешно занял ячейку: ${data.id}`;
-                    document.getElementById('userLogin').value = '';
+                    addLog(`Успешно зарегистрирован "${robotLogin}" ➡️ ячейка ${data.id}`, true);
+                    userCounter++;
                 } else {
-                    status.style.color = "red";
-                    status.innerText = "Ошибка: " + data.message;
+                    addLog(`Ошибка сервера: ${data.message}`, false);
                 }
             })
             .catch(err => {
-                status.style.color = "red";
-                status.innerText = "Ошибка соединения с kash-04dt.onrender.com";
+                addLog(`Ошибка сети с kash-04dt.onrender.com`, false);
             });
         }
+
+        // Запуск каждую секунду (1000 миллисекунд)
+        setInterval(autoRegister, 1000);
     </script>
 </body>
 </html>
