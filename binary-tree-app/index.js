@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static('public'));
 
-// Стартовая структура бинара
+// Базовая структура
 const getInitialTree = () => ({
     login: "Admin", id: "Admin",
     left: { login: "User_Left_1", id: "A1", left: null, right: null },
@@ -14,16 +14,21 @@ const getInitialTree = () => ({
 });
 
 let treeData = getInitialTree();
-let currentLevel = 3; 
+let currentLevel = 3; // Начинаем тесты с уровня C (level 3)
 let registeredInCurrentLevel = []; 
 
+// СТРОГАЯ ЛОГИКА ЧЕТВЁРОК 👑
 function getChessSequenceForLevel(level) {
     const maxNodes = Math.pow(2, level - 1);
     const sequence = [];
-    const blockSize = maxNodes / 4;
-    for (let step = 0; step < blockSize; step++) {
-        for (let block = 0; block < 4; block++) {
-            sequence.push(block * blockSize + step + 1);
+    const totalQuads = maxNodes / 4; // Сколько всего четвёрок на уровне
+
+    // Шагаем по позициям внутри четвёрок: сначала все 1-ые, потом все 2-ые, 3-ии, 4-ые
+    for (let position = 0; position < 4; position++) {
+        for (let quadIndex = 0; quadIndex < totalQuads; quadIndex++) {
+            // Номер ячейки = (номер четвёрки * 4) + (позиция внутри четвёрки + 1)
+            const nodeNumber = (quadIndex * 4) + position + 1;
+            sequence.push(nodeNumber);
         }
     }
     return sequence;
@@ -95,10 +100,9 @@ app.post('/api/register', (req, res) => {
         }
         return res.json({ success: true, id: assignedId });
     }
-    res.status(500).json({ success: false, message: "Не удалось вставить в структуру" });
+    res.status(500).json({ success: false, message: "Ошибка вставки" });
 });
 
-// ВРЕМЕННЫЙ РОУТ СБРОСА ДЛЯ ТЕСТОВ 🔄
 app.post('/api/reset', (req, res) => {
     treeData = getInitialTree();
     currentLevel = 3;
