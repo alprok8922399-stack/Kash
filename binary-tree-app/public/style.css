@@ -1,1 +1,112 @@
+body { 
+    font-family: -apple-system, sans-serif; 
+    background: #2c3e50; 
+    color: white; 
+    margin: 0; 
+    padding: 0; 
+    overflow: hidden; /* Отключаем стандартные скроллы браузера */
+}
 
+/* ШАПКА САЙТА — ВСЕГДА ПО ЦЕНТРУ И СВЕРХУ */
+.header-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    background: rgba(44, 62, 80, 0.95); /* Полупрозрачный фон, чтобы дерево могло заплывать под него */
+    padding: 15px 0;
+    text-align: center;
+    border-bottom: 1px solid #34495e;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.header-panel h2 {
+    margin: 0 0 10px 0;
+    font-size: 20px;
+}
+
+/* Кнопки управления */
+.control-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 15px;
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 13px;
+}
+.btn-zoom { background: #3498db; color: white; }
+.btn-reset { background: #e74c3c; color: white; }
+
+/* ЭКРАН-ОКНО ДЛЯ МАТРИЦЫ */
+#viewport {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+    cursor: grab;
+}
+#viewport:active { cursor: grabbing; }
+
+/* КОНТЕЙНЕР ДЛЯ ДВИЖЕНИЯ И ЗУМА */
+#pan-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    transform-origin: top center;
+    transition: transform 0.05s ease-out;
+}
+
+/* Контейнер дерева внутри */
+.tree-container { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    margin-top: 140px; /* Отступ вниз, чтобы Admin не прятался под шапкой при сбросе */
+}
+
+#tree, #tree .children { display: flex; justify-content: center; }
+
+/* Твои оригинальные карточки */
+.node { 
+    background: #ecf0f1; 
+    color: #2c3e50;
+    border-radius: 12px; 
+    padding: 15px; 
+    margin: 10px; 
+    width: 110px; /* Фиксируем ширину, чтобы ячейки не сжимались в кашу */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.children { display: flex; width: 100%; justify-content: center; }
+.branch { display: flex; flex-direction: column; align-items: center; }
+
+/* Цвета уровней */
+.level-1 { background: #f1c40f !important; }
+.level-2 { background: #3498db !important; color: white !important; }
+.level-3 { background: #bdc3c7 !important; }
+
+/* Пустые ячейки */
+.node.empty {
+    background: #34495e !important;
+    border: 2px dashed #7f8c8d;
+    color: #7f8c8d !important;
+    box-shadow: none;
+}
+
+.id-tag {
+    font-size: 11px;
+    color: #555;
+    display: block;
+    margin-top: 5px;
+}
+.level-2 .id-tag { color: #eee; }
