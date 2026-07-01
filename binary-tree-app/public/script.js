@@ -1,6 +1,6 @@
-let scale = 0.8;
-let posX = window.innerWidth / 4;
-let posY = 80;
+let scale = 0.6; // Немного уменьшил стартовый зум, чтобы дерево сразу помещалось
+let posX = 0;
+let posY = 50;
 let isDragging = false;
 let startX, startY;
 
@@ -11,9 +11,11 @@ function updateTransform() {
     container.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
 }
 
+// Свободное перетаскивание мышкой в любую сторону
 viewport.addEventListener('mousedown', (e) => {
-    if (e.target.closest('.control-panel')) return;
+    if (e.target.closest('.control-panel')) return; // Не двигать, если кликаем по кнопкам панели
     isDragging = true;
+    viewport.style.cursor = 'grabbing';
     startX = e.clientX - posX;
     startY = e.clientY - posY;
 });
@@ -25,19 +27,35 @@ window.addEventListener('mousemove', (e) => {
     updateTransform();
 });
 
-window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mouseup', () => {
+    isDragging = false;
+    viewport.style.cursor = 'grab';
+});
 
+// Улучшенный зум колесиком мыши (сфокусирован ближе к центру)
 viewport.addEventListener('wheel', (e) => {
     e.preventDefault();
     const zoomFactor = 0.05;
-    if (e.deltaY < 0) scale = Math.min(scale + zoomFactor, 2);
-    else scale = Math.max(scale - zoomFactor, 0.2);
+    if (e.deltaY < 0) {
+        scale = Math.min(scale + zoomFactor, 2);
+    } else {
+        scale = Math.max(scale - zoomFactor, 0.15);
+    }
     updateTransform();
 }, { passive: false });
 
+// Функции кнопок управления
 function zoomIn() { scale = Math.min(scale + 0.1, 2); updateTransform(); }
-function zoomOut() { scale = Math.max(scale - 0.1, 0.2); updateTransform(); }
-function resetView() { scale = 0.8; posX = window.innerWidth / 4; posY = 80; updateTransform(); }
+function zoomOut() { scale = Math.max(scale - 0.1, 0.15); updateTransform(); }
+
+// Идеальное центрирование дерева на экране!
+function resetView() {
+    scale = 0.6;
+    // Находим центр экрана и ставим туда корень (Admin)
+    posX = window.innerWidth / 2;
+    posY = 60;
+    updateTransform();
+}
 
 function resetTree() {
     if (confirm("Обнулить дерево тестов?")) {
@@ -66,21 +84,17 @@ function findNodeById(root, id) {
 function isQuadFull(data, serverLevel, serverRegistered, level, quadIndex) {
     const letter = getLetterByLevel(level);
     
-    // Проверяем каждую из 4-х ячеек в этой четвёрке
     for (let p = 0; p < 4; p++) {
         const cellNum = (quadIndex * 4) + p + 1;
         const cellId = `${letter}${cellNum}`;
         
         if (serverLevel === level) {
-            // Если мы на текущем уровне, смотрим и в дерево, и в массив регистрации прямо сейчас
             if (!serverRegistered.includes(cellId) && !findNodeById(data, cellId)) {
                 return false;
             }
         } else if (serverLevel < level) {
-            // Если сервер еще даже не дошел до этого уровня
             return false;
         } else {
-            // Если сервер уже прошел этот уровень, значит он гарантированно заполнен
             return true;
         }
     }
@@ -98,17 +112,12 @@ function renderTree(apiData) {
     const build = (node, currentId, level) => {
         let showThisNode = true;
         
-        // ТРИГГЕР ОТКРЫТИЯ РАМОК ПО ЧЕТВЁРКАМ РОДИТЕЛЕЙ 👑
         if (level > 3) {
             const parentLetter = getLetterByLevel(level - 1);
             const num = parseInt(currentId.replace(/[^\d]/g, ''));
-            const parentIdNum = Math.ceil(num / 2); // Номер родительской ячейки
-            
-            // Находим индекс четвёрки, в которой сидит наш родитель
+            const parentIdNum = Math.ceil(num / 2);
             const parentQuadIndex = Math.floor((parentIdNum - 1) / 4);
 
-            // Показываем рамку текущего уровня, только если на предыдущем уровне (level - 1) 
-            // четвёрка нашего родителя ПОЛНОСТЬЮ закрыта!
             showThisNode = isQuadFull(data, serverLevel, serverRegistered, level - 1, parentQuadIndex);
         }
 
@@ -148,6 +157,7 @@ function renderTree(apiData) {
     treeDiv.innerHTML = build(data, "Admin", 1);
 }
 
+// Фоновое обновление данных каждые 1 секунду
 setInterval(() => {
     fetch('/api/tree')
         .then(res => res.json())
@@ -155,7 +165,8 @@ setInterval(() => {
         .catch(err => console.error(err));
 }, 1000);
 
+// Первичная инициализация
 fetch('/api/tree').then(res => res.json()).then(apiData => {
     renderTree(apiData);
-    resetView();
+    resetView(); // Выравниваем строго по центру
 });
