@@ -1,6 +1,6 @@
 let scale = 0.5; 
-let posX = 0;
-let posY = 180;
+let posX = 0; // Строго 0, так как CSS уже ставит её по центру
+let posY = 0; // Строго 0, так как отступ от шапки уже прописан в CSS
 let isDragging = false;
 let startX, startY;
 
@@ -11,6 +11,7 @@ function updateTransform() {
     container.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
 }
 
+// Управление МЫШКОЙ (для компьютера)
 viewport.addEventListener('mousedown', (e) => {
     if (e.target.closest('.header-panel') || e.target.closest('.control-buttons')) return;
     isDragging = true;
@@ -27,6 +28,24 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseup', () => isDragging = false);
 
+// Управление ПАЛЬЦЕМ (для телефона)
+viewport.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.header-panel') || e.target.closest('.control-buttons')) return;
+    isDragging = true;
+    startX = e.touches[0].clientX - posX;
+    startY = e.touches[0].clientY - posY;
+}, {passive: false});
+
+window.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    posX = e.touches[0].clientX - startX;
+    posY = e.touches[0].clientY - startY;
+    updateTransform();
+}, {passive: false});
+
+window.addEventListener('touchend', () => isDragging = false);
+
+// Зум колесиком мыши (на компе)
 viewport.addEventListener('wheel', (e) => {
     e.preventDefault();
     const zoomFactor = 0.05;
@@ -38,10 +57,11 @@ viewport.addEventListener('wheel', (e) => {
 function zoomIn() { scale = Math.min(scale + 0.1, 2); updateTransform(); }
 function zoomOut() { scale = Math.max(scale - 0.1, 0.15); updateTransform(); }
 
+// Идеальный сброс в центр
 function resetView() {
     scale = 0.5;
-    posX = window.innerWidth / 2;
-    posY = 180; 
+    posX = 0; // Возвращаем в начальное нулевое положение (по центру)
+    posY = 0; 
     updateTransform();
 }
 
