@@ -45,22 +45,23 @@ window.addEventListener('touchmove', (e) => {
 
 window.addEventListener('touchend', () => isDragging = false);
 
-// Зум колесиком мыши (на компе)
+// Зум колесиком мыши (минимальный зум опущен до 0.05, чтобы отдалять в 3 раза сильнее)
 viewport.addEventListener('wheel', (e) => {
     e.preventDefault();
     const zoomFactor = 0.05;
     if (e.deltaY < 0) scale = Math.min(scale + zoomFactor, 2);
-    else scale = Math.max(scale - zoomFactor, 0.15);
+    else scale = Math.max(scale - zoomFactor, 0.05);
     updateTransform();
 }, { passive: false });
 
 function zoomIn() { scale = Math.min(scale + 0.1, 2); updateTransform(); }
-function zoomOut() { scale = Math.max(scale - 0.1, 0.15); updateTransform(); }
+// Кнопка "-" теперь отдаляет в 3 раза сильнее (минимум 0.05 вместо 0.15)
+function zoomOut() { scale = Math.max(scale - 0.1, 0.05); updateTransform(); }
 
 // Идеальный сброс в центр
 function resetView() {
     scale = 0.5;
-    posX = 0; // Возвращаем в начальное нулевое положение (по центру)
+    posX = 0; 
     posY = 0; 
     updateTransform();
 }
@@ -111,20 +112,10 @@ function renderTree(apiData) {
     if (!apiData) return;
 
     const data = apiData.tree;
-    const serverLevel = apiData.currentLevel;
-    const serverRegistered = apiData.registeredInCurrentLevel;
 
     const build = (node, currentId, level) => {
-        let showThisNode = true;
-        if (level > 3) {
-            const parentLetter = getLetterByLevel(level - 1);
-            const num = parseInt(currentId.replace(/[^\d]/g, ''));
-            const parentIdNum = Math.ceil(num / 2);
-            const parentQuadIndex = Math.floor((parentIdNum - 1) / 4);
-            showThisNode = isQuadFull(data, serverLevel, serverRegistered, level - 1, parentQuadIndex);
-        }
-
-        if (!showThisNode) return '';
+        // Жесткий стоп на уровне 7 (уровень F). Дальше код не пойдет.
+        if (level > 7) return ''; 
 
         if (!node) {
             return `
@@ -160,7 +151,7 @@ function renderTree(apiData) {
     treeDiv.innerHTML = build(data, "Admin", 1);
 }
 
-// Интервал изменен на 2 секунды (2000 миллисекунд)
+// Интервал обновления — 2 секунды
 setInterval(() => {
     fetch('/api/tree')
         .then(res => res.json())
