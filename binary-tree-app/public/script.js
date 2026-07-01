@@ -160,12 +160,13 @@ function renderTree(apiData) {
     treeDiv.innerHTML = build(data, "Admin", 1);
 }
 
+// Интервал изменен на 2 секунды (2000 миллисекунд)
 setInterval(() => {
     fetch('/api/tree')
         .then(res => res.json())
         .then(apiData => renderTree(apiData))
         .catch(err => console.error(err));
-}, 1000);
+}, 2000);
 
 fetch('/api/tree').then(res => res.json()).then(apiData => {
     renderTree(apiData);
