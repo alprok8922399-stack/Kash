@@ -9,16 +9,13 @@
         .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         .status-box { background: #e9ecef; padding: 15px; border-radius: 5px; min-height: 50px; font-weight: bold; margin-bottom: 20px; }
         .log-box { text-align: left; max-height: 250px; overflow-y: auto; background: #212529; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; font-size: 14px; }
-        .badge { background: #007bff; color: white; padding: 5px 10px; border-radius: 20px; font-size: 12px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h2>Регистратор-Автомат 🤖</h2>
-        <p style="color: #666;">Генерирует и регистрирует пользователей каждую 1 секунду</p>
-        
-        <div class="status-box" id="currentAction">Регистрация запущена...</div>
-        
+        <p style="color: #666;">Регистрация пользователей каждые 3 секунды</p>
+        <div class="status-box" id="currentAction">Запуск автомата...</div>
         <h3>Лог отправки:</h3>
         <div class="log-box" id="logConsole"></div>
     </div>
@@ -46,34 +43,34 @@
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    addLog(`Успешно зарегистрирован "${robotLogin}" ➡️ ячейка ${data.id}`, true);
+                    addLog(`Успешно: "${robotLogin}" ➡️ ячейка ${data.id}`, true);
                     userCounter++;
                 } else {
                     addLog(`Ошибка сервера: ${data.message}`, false);
                 }
             })
             .catch(err => {
-                addLog(`Ошибка сети с kash-04dt.onrender.com`, false);
+                addLog(`Ошибка сети с сервером`, false);
             });
         }
 
-        // Каждые 2 секунды проверяем, не сбросил ли админ дерево, чтобы обнулить счетчик роботов
+        // Синхронизация сброса
         setInterval(() => {
             fetch('/api/tree')
             .then(res => res.json())
             .then(apiData => {
                 if (apiData.currentLevel === 3 && apiData.registeredInCurrentLevel.length === 0) {
                     if (userCounter !== 1) {
-                        userCounter = 1; // Сбрасываем счетчик имен роботов назад к единице
-                        addLog(`Обнаружен сброс структуры на сервере! Начинаем с User_1 🔄`, true);
+                        userCounter = 1;
+                        addLog(`Обнаружен сброс структуры! Начинаем с User_1 🔄`, true);
                     }
                 }
             })
-            .catch(err => console.error("Ошибка синхронизации счетчика:", err));
+            .catch(err => console.error(err));
         }, 2000);
 
-        // Запуск генерации пользователей каждую секунду
-        setInterval(autoRegister, 1000);
+        // Интервал изменен на 3 секунды (3000 мс)
+        setInterval(autoRegister, 3000);
     </script>
 </body>
 </html>
