@@ -4,17 +4,16 @@ body {
     color: white; 
     margin: 0; 
     padding: 0; 
-    overflow: hidden; /* Отключаем стандартные скроллы браузера */
+    overflow: hidden; 
 }
 
-/* ШАПКА САЙТА — ВСЕГДА ПО ЦЕНТРУ И СВЕРХУ */
 .header-panel {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     z-index: 100;
-    background: rgba(44, 62, 80, 0.95); /* Полупрозрачный фон, чтобы дерево могло заплывать под него */
+    background: rgba(44, 62, 80, 0.95); 
     padding: 15px 0;
     text-align: center;
     border-bottom: 1px solid #34495e;
@@ -26,7 +25,6 @@ body {
     font-size: 20px;
 }
 
-/* Кнопки управления */
 .control-buttons {
     display: flex;
     justify-content: center;
@@ -44,7 +42,6 @@ body {
 .btn-zoom { background: #3498db; color: white; }
 .btn-reset { background: #e74c3c; color: white; }
 
-/* ЭКРАН-ОКНО ДЛЯ МАТРИЦЫ */
 #viewport {
     width: 100vw;
     height: 100vh;
@@ -54,7 +51,6 @@ body {
 }
 #viewport:active { cursor: grabbing; }
 
-/* КОНТЕЙНЕР ДЛЯ ДВИЖЕНИЯ И ЗУМА */
 #pan-container {
     position: absolute;
     top: 0;
@@ -64,38 +60,35 @@ body {
     transition: transform 0.05s ease-out;
 }
 
-/* Контейнер дерева внутри */
 .tree-container { 
     display: flex; 
     flex-direction: column; 
     align-items: center; 
-    margin-top: 140px; /* Отступ вниз, чтобы Admin не прятался под шапкой при сбросе */
+    margin-top: 140px; 
 }
 
 #tree, #tree .children { display: flex; justify-content: center; }
 
-/* Твои оригинальные карточки */
 .node { 
     background: #ecf0f1; 
     color: #2c3e50;
     border-radius: 12px; 
     padding: 15px; 
     margin: 10px; 
-    width: 110px; /* Фиксируем ширину, чтобы ячейки не сжимались в кашу */
+    width: 110px; 
     box-shadow: 0 4px 6px rgba(0,0,0,0.3);
     font-weight: bold;
     font-size: 14px;
+    text-align: center;
 }
 
 .children { display: flex; width: 100%; justify-content: center; }
 .branch { display: flex; flex-direction: column; align-items: center; }
 
-/* Цвета уровней */
 .level-1 { background: #f1c40f !important; }
 .level-2 { background: #3498db !important; color: white !important; }
 .level-3 { background: #bdc3c7 !important; }
 
-/* Пустые ячейки */
 .node.empty {
     background: #34495e !important;
     border: 2px dashed #7f8c8d;
