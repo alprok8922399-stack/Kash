@@ -14,7 +14,7 @@
 <body>
     <div class="container">
         <h2>Регистратор-Автомат 🤖</h2>
-        <p style="color: #666;">Регистрация пользователей каждые 3 секунды</p>
+        <p style="color: #666;">Регистрация пользователей каждые 3 секунды по Правилу Четырёх</p>
         <div class="status-box" id="currentAction">Запуск автомата...</div>
         <h3>Лог отправки:</h3>
         <div class="log-box" id="logConsole"></div>
@@ -31,35 +31,96 @@
             logConsole.innerHTML = `<div style="color: ${color}">[${time}] ${message}</div>` + logConsole.innerHTML;
         }
 
-        function autoRegister() {
-            const robotLogin = `User_${userCounter}`;
-            currentAction.innerText = `Отправка: ${robotLogin}`;
+        function getLetterByLevel(level) {
+            if (level === 1) return "Admin";
+            return String.fromCharCode(65 + level - 2);
+        }
 
-            fetch('/api/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ login: robotLogin })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    addLog(`Успешно: "${robotLogin}" ➡️ ячейка ${data.id}`, true);
-                    userCounter++;
-                } else {
-                    addLog(`Ошибка сервера: ${data.message}`, false);
+        function findNodeById(root, id) {
+            if (!root) return null;
+            if (root.id === id) return root;
+            return findNodeById(root.left, id) || findNodeById(root.right, id);
+        }
+
+        // Генерирует шахматную/веерную последовательность номеров для уровня
+        function getChessSequenceForLevel(level) {
+            const maxNodes = Math.pow(2, level - 1);
+            const sequence = [];
+            const totalQuads = maxNodes / 4; 
+            for (let position = 0; position < 4; position++) {
+                for (let quadIndex = 0; quadIndex < totalQuads; quadIndex++) {
+                    const nodeNumber = (quadIndex * 4) + position + 1;
+                    sequence.push(nodeNumber);
                 }
+            }
+            return sequence;
+        }
+
+        // Функция автоматического определения следующего свободного ID по веерной системе
+        function getNextTargetId(root) {
+            // Начинаем поиск с уровня 3 (Уровень C), так как уровни 1 и 2 предустановлены (Admin, A1, A2)
+            let level = 3;
+            while (level <= 7) {
+                const letter = getLetterByLevel(level);
+                const sequence = getChessSequenceForLevel(level);
+                
+                for (let i = 0; i < sequence.length; i++) {
+                    const cellId = `${letter}${sequence[i]}`;
+                    // Если такого ID в дереве ещё нет — это наша цель!
+                    if (!findNodeById(root, cellId)) {
+                        return cellId;
+                    }
+                }
+                level++;
+            }
+            return null;
+        }
+
+        function autoRegister() {
+            // Сначала запрашиваем актуальное дерево, чтобы точно знать куда ставить
+            fetch('/api/tree')
+            .then(res => res.json())
+            .then(treeData => {
+                const root = treeData.tree ? treeData.tree : treeData;
+                const targetId = getNextTargetId(root);
+
+                if (!targetId) {
+                    addLog("Структура полностью заполнена до 7 уровня!", false);
+                    return;
+                }
+
+                const robotLogin = `User_${userCounter}`;
+                currentAction.innerText = `Отправка: ${robotLogin} в ячейку ${targetId}`;
+
+                // Шлем запрос с указанием targetId, как требует новый index.js
+                return fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ login: robotLogin, targetId: targetId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.success) {
+                        addLog(`Успешно: "${robotLogin}" ➡️ ячейка ${targetId}`, true);
+                        userCounter++;
+                    } else {
+                        addLog(`Ошибка сервера: ${data.message || 'Занято'}`, false);
+                    }
+                });
             })
             .catch(err => {
                 addLog(`Ошибка сети с сервером`, false);
             });
         }
 
-        // Синхронизация сброса
+        // Интервал проверки сброса структуры (синхронизация счетчика)
         setInterval(() => {
             fetch('/api/tree')
             .then(res => res.json())
-            .then(apiData => {
-                if (apiData.currentLevel === 3 && apiData.registeredInCurrentLevel.length === 0) {
+            .then(treeData => {
+                const root = treeData.tree ? treeData.tree : treeData;
+                // Если остался только админ и стартовые узлы, сбрасываем счетчик
+                if (root && root.left && !root.left.left && !root.left.right) {
                     if (userCounter !== 1) {
                         userCounter = 1;
                         addLog(`Обнаружен сброс структуры! Начинаем с User_1 🔄`, true);
@@ -67,9 +128,9 @@
                 }
             })
             .catch(err => console.error(err));
-        }, 2000);
+        }, 3000);
 
-        // Интервал изменен на 3 секунды (3000 мс)
+        // Запуск авторегистрации каждые 3 секунды
         setInterval(autoRegister, 3000);
     </script>
 </body>
