@@ -45,7 +45,7 @@ window.addEventListener('touchmove', (e) => {
 
 window.addEventListener('touchend', () => isDragging = false);
 
-// Зум колесиком мыши (минимальный зум опущен до 0.05, чтобы отдалять в 3 раза сильнее)
+// Зум колесиком мыши
 viewport.addEventListener('wheel', (e) => {
     e.preventDefault();
     const zoomFactor = 0.05;
@@ -55,7 +55,6 @@ viewport.addEventListener('wheel', (e) => {
 }, { passive: false });
 
 function zoomIn() { scale = Math.min(scale + 0.1, 2); updateTransform(); }
-// Кнопка "-" теперь отдаляет в 3 раза сильнее (минимум 0.05 вместо 0.15)
 function zoomOut() { scale = Math.max(scale - 0.1, 0.05); updateTransform(); }
 
 // Идеальный сброс в центр
@@ -89,19 +88,14 @@ function findNodeById(root, id) {
     return findNodeById(root.left, id) || findNodeById(root.right, id);
 }
 
-function isQuadFull(data, serverLevel, serverRegistered, level, quadIndex) {
+// Функция проверки: заполнена ли четверка полностью
+function isQuadFull(root, level, quadIndex) {
     const letter = getLetterByLevel(level);
     for (let p = 0; p < 4; p++) {
         const cellNum = (quadIndex * 4) + p + 1;
         const cellId = `${letter}${cellNum}`;
-        if (serverLevel === level) {
-            if (!serverRegistered.includes(cellId) && !findNodeById(data, cellId)) {
-                return false;
-            }
-        } else if (serverLevel < level) {
+        if (!findNodeById(root, cellId)) {
             return false;
-        } else {
-            return true;
         }
     }
     return true;
@@ -111,10 +105,11 @@ function renderTree(apiData) {
     const treeDiv = document.getElementById('tree');
     if (!apiData) return;
 
-    const data = apiData.tree;
+    // В нашей новой структуре apiData — это и есть сам объект дерева root
+    const data = apiData.tree ? apiData.tree : apiData;
 
     const build = (node, currentId, level) => {
-        // Жесткий стоп на уровне 7 (уровень F). Дальше код не пойдет.
+        // Жесткий стоп на уровне 7. Дальше код не пойдет.
         if (level > 7) return ''; 
 
         if (!node) {
@@ -134,16 +129,28 @@ function renderTree(apiData) {
             rightId = `${nextLetter}${num * 2}`;
         }
 
+        // Проверяем, нужно ли открывать нижний уровень (следующий за текущим)
+        // Правило четырех: проверяем четверку ТЕКУЩЕГО уровня перед отрисовкой СЛЕДУЮЩЕГО
+        let showChildren = true;
+        if (level >= 3) {
+            const currentNum = parseInt(node.id.replace(/[^\d]/g, ''));
+            // Вычисляем индекс четверки, к которой принадлежит текущая ячейка
+            const quadIndex = Math.floor((currentNum - 1) / 4);
+            showChildren = isQuadFull(data, level, quadIndex);
+        }
+
         return `
             <div class="branch">
                 <div class="node level-${level > 3 ? 3 : level}">
                     <b>${node.login}</b><br>
                     <span class="id-tag">${node.id}</span>
                 </div>
+                ${showChildren ? `
                 <div class="children">
                     ${build(node.left, leftId, level + 1)}
                     ${build(node.right, rightId, level + 1)}
                 </div>
+                ` : ''}
             </div>
         `;
     };
